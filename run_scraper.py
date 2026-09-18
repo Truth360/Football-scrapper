@@ -17,37 +17,39 @@ os.makedirs(UPCOMING_DIR, exist_ok=True)
 def fetch_sofascore_day(target_date: str, sport: str = "football"):
     """
     Connects to SofaScore's backend API gateway using TLS impersonation
-    to scrape the complete global inverse catalog for a target date.
+    and wraps the request inside the ScrapeOps proxy gateway to bypass data center blocks.
     """
-    # Bulletproof separation: completely isolated variables to eliminate concatenation anomalies
-    domain = "https://sofascore.com"
-    endpoint_path = f"/api/v1/sport/{sport}/scheduled-events/{target_date}/inverse"
-    api_url = f"{domain}{endpoint_path}"
+    # Securely integrated active api key
+    SCRAPEOPS_API_KEY = "958b2c50-6f47-4529-97f6-e28fcc210663"
     
-    print(f"[*] Dispatching connection to exact URL: {api_url}")
+    # Construct clean target URL destination
+    target_url = f"https://sofascore.com{sport}/scheduled-events/{target_date}/inverse"
     
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "*/*",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://sofascore.com",
-        "Origin": "https://sofascore.com",
+    # Reroute request through ScrapeOps residential proxy engine gateway
+    proxy_gateway_url = "https://scrapeops.io"
+    
+    params = {
+        "api_key": SCRAPEOPS_API_KEY,
+        "url": target_url,
+        "bypass": "cloudflare"  # Enforces aggressive Cloudflare header/cookie manipulation
     }
     
+    print(f"[*] Tunneling request through ScrapeOps proxy gateway for date: {target_date}")
+    
     try:
-        # Impersonating Chrome to bypass Cloudflare TLS handshake fingerprinting
-        response = requests.get(api_url, headers=headers, impersonate="chrome120", timeout=15)
+        # Keep using curl_cffi for proxy target delivery validation
+        response = requests.get(proxy_gateway_url, params=params, impersonate="chrome120", timeout=30)
         
         if response.status_code == 200:
             return response.json().get("events", [])
-        elif response.status_code == 404:
-            print(f"[-] No events found for date: {target_date}")
+        elif response.status_code == 403:
+            print(f"[-] Proxy Gateway was blocked by Cloudflare (403) for date: {target_date}.")
             return []
         else:
-            print(f"[-] API rejected request. HTTP Status: {response.status_code}")
+            print(f"[-] Request failed via gateway. Status: {response.status_code}")
             return []
     except Exception as e:
-        print(f"[-] Network connection failed: {e}")
+        print(f"[-] Proxy routing layer failure: {e}")
         return []
 
 def extract_clean_metadata(raw_events):
@@ -119,6 +121,7 @@ def pipeline_runner():
                 json.dump(clean_data, f, indent=2)
             print(f"[+] Saved {len(clean_data)} historical entries to {output_file}")
             
+        # Throttling helps optimize API credit allocation pacing
         time.sleep(random.uniform(2.5, 4.5))
 
     # 2. UPCOMING MATCHES FOR PREDICTIONS (Today and Tomorrow)
