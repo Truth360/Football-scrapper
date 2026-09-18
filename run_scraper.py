@@ -19,13 +19,11 @@ def fetch_sofascore_day(target_date: str, sport: str = "football"):
     Connects to SofaScore's backend API gateway using TLS impersonation
     to scrape the complete global inverse catalog for a target date.
     """
-    # Enforce clear forward slash separations
-    api_url = f"https://sofascore.com{sport}/scheduled-events/{target_date}/inverse"
+    # Bulletproof separation: completely isolated variables to eliminate concatenation anomalies
+    domain = "https://sofascore.com"
+    endpoint_path = f"/api/v1/sport/{sport}/scheduled-events/{target_date}/inverse"
+    api_url = f"{domain}{endpoint_path}"
     
-    # Hardened fail-safe sanitation right before connecting
-    if "comfootball" in api_url:
-        api_url = api_url.replace("sofascore.comfootball", "://sofascore.com")
-        
     print(f"[*] Dispatching connection to exact URL: {api_url}")
     
     headers = {
