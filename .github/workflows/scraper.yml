@@ -1,22 +1,24 @@
-name: Automated SofaScore Data Engine
+name: Football Scrapper Engine
 
 on:
   schedule:
-    # Runs automatically once every day at 02:00 AM UTC
     - cron: '0 2 * * *'
   workflow_dispatch:
-    # Allows you to manually trigger the machine at any time via GitHub web UI
 
 permissions:
-  contents: write # Grants the runner permission to commit data files back to repo
+  contents: write
 
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
 
     steps:
+    # FIXED: Added explicit branch declaration to prevent caching old state
     - name: Checkout Repository Context
       uses: actions/checkout@v4
+      with:
+        ref: ${{ github.ref_name }}
+        clean: true
 
     - name: Configure Python Environment
       uses: actions/setup-python@v5
@@ -37,13 +39,11 @@ jobs:
         git config --global user.name "SofaScore Pipeline Bot"
         git config --global user.email "github-actions[bot]@://github.com"
         
-        # Safely stage the entire data directory and all dynamically created JSON files
         git add data/
         
-        # Only commit if actual delta changes exist
         if git diff --staged --quiet; then
           echo "No new fixture differences found. Skipping tree push."
         else
           git commit -m "Automated Pipeline Sync: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-          git push
+          git push origin HEAD:${{ github.ref_name }}
         fi
