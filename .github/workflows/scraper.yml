@@ -1,4 +1,4 @@
-name: Football Scrapper Engine
+name: Football Scrapper Production V2
 
 on:
   schedule:
@@ -13,11 +13,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # FIXED: Added explicit branch declaration to prevent caching old state
+    # Forces GitHub to check out a totally clean commit tree without tracking old branch cache
     - name: Checkout Repository Context
       uses: actions/checkout@v4
       with:
         ref: ${{ github.ref_name }}
+        fetch-depth: 0
         clean: true
 
     - name: Configure Python Environment
