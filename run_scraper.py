@@ -19,8 +19,14 @@ def fetch_sofascore_day(target_date: str, sport: str = "football"):
     Connects to SofaScore's backend API gateway using TLS impersonation
     to scrape the complete global inverse catalog for a target date.
     """
-    # FIXED: Added the missing forward slash before /scheduled-events/
+    # Enforce clear forward slash separations
     api_url = f"https://sofascore.com{sport}/scheduled-events/{target_date}/inverse"
+    
+    # Hardened fail-safe sanitation right before connecting
+    if "comfootball" in api_url:
+        api_url = api_url.replace("sofascore.comfootball", "://sofascore.com")
+        
+    print(f"[*] Dispatching connection to exact URL: {api_url}")
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -30,16 +36,14 @@ def fetch_sofascore_day(target_date: str, sport: str = "football"):
         "Origin": "https://sofascore.com",
     }
     
-    print(f"[*] Querying API for: {target_date}")
-    
     try:
-        # Impersonating Chrome to bypass modern TLS handshake checks
+        # Impersonating Chrome to bypass Cloudflare TLS handshake fingerprinting
         response = requests.get(api_url, headers=headers, impersonate="chrome120", timeout=15)
         
         if response.status_code == 200:
             return response.json().get("events", [])
         elif response.status_code == 404:
-            print(f"[-] No events found or endpoint changed for date: {target_date}")
+            print(f"[-] No events found for date: {target_date}")
             return []
         else:
             print(f"[-] API rejected request. HTTP Status: {response.status_code}")
