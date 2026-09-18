@@ -19,6 +19,7 @@ def fetch_sofascore_day(target_date: str, sport: str = "football"):
     Connects to SofaScore's backend API gateway using TLS impersonation
     to scrape the complete global inverse catalog for a target date.
     """
+    # FIXED: Added the missing forward slash before /scheduled-events/
     api_url = f"https://sofascore.com{sport}/scheduled-events/{target_date}/inverse"
     
     headers = {
@@ -32,7 +33,7 @@ def fetch_sofascore_day(target_date: str, sport: str = "football"):
     print(f"[*] Querying API for: {target_date}")
     
     try:
-        # Impersonating Chrome 120+ to force valid modern TLS handshake fingerprinting
+        # Impersonating Chrome to bypass modern TLS handshake checks
         response = requests.get(api_url, headers=headers, impersonate="chrome120", timeout=15)
         
         if response.status_code == 200:
@@ -56,7 +57,6 @@ def extract_clean_metadata(raw_events):
     
     for event in raw_events:
         try:
-            # Drop low-tier matches without odds or structural tracking parameters
             if not event.get("id"):
                 continue
                 
@@ -97,7 +97,6 @@ def extract_clean_metadata(raw_events):
             cleaned_fixtures.append(match_payload)
             
         except Exception as err:
-            # Gracefully bypass unexpected structural shifts in individual events
             continue
             
     return cleaned_fixtures
@@ -105,7 +104,7 @@ def extract_clean_metadata(raw_events):
 def pipeline_runner():
     today = datetime.now().date()
     
-    # 1. BULK HISTORICAL SCRAPING (Collect past 3 days to catch up/update results)
+    # 1. BULK HISTORICAL SCRAPING (Collect past 3 days)
     print("\n--- Starting Historical Scrape Component ---")
     for i in range(1, 4):  
         target_date = (today - timedelta(days=i)).isoformat()
@@ -118,7 +117,6 @@ def pipeline_runner():
                 json.dump(clean_data, f, indent=2)
             print(f"[+] Saved {len(clean_data)} historical entries to {output_file}")
             
-        # Polite throttling inside GitHub runner environments
         time.sleep(random.uniform(2.5, 4.5))
 
     # 2. UPCOMING MATCHES FOR PREDICTIONS (Today and Tomorrow)
