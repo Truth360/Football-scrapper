@@ -19,37 +19,49 @@ def fetch_sofascore_day(target_date: str, sport: str = "football"):
     Connects to SofaScore's backend API gateway using TLS impersonation
     and wraps the request inside the ScrapeOps proxy gateway to bypass data center blocks.
     """
-    # Securely integrated active api key
     SCRAPEOPS_API_KEY = "958b2c50-6f47-4529-97f6-e28fcc210663"
     
     # Construct clean target URL destination
     target_url = f"https://sofascore.com{sport}/scheduled-events/{target_date}/inverse"
     
     # Reroute request through ScrapeOps residential proxy engine gateway
-    proxy_gateway_url = "https://scrapeops.io"
+    proxy_gateway_url = "https://proxy.scrapeops.io/v1/"
     
     params = {
         "api_key": SCRAPEOPS_API_KEY,
         "url": target_url,
-        "bypass": "cloudflare"  # Enforces aggressive Cloudflare header/cookie manipulation
+        "bypass": "cloudflare_level_1",  # Activates the precise Cloudflare proxy bypass settings
+        "json_response": "true"          # FORCED FIX: Directs ScrapeOps to return parseable JSON context
     }
     
     print(f"[*] Tunneling request through ScrapeOps proxy gateway for date: {target_date}")
     
     try:
-        # Keep using curl_cffi for proxy target delivery validation
         response = requests.get(proxy_gateway_url, params=params, impersonate="chrome120", timeout=30)
         
         if response.status_code == 200:
-            return response.json().get("events", [])
+            wrapper_data = response.json()
+            
+            # The actual target payload string is inside the 'body' property of ScrapeOps response wrapper
+            raw_body_content = wrapper_data.get("body", "")
+            
+            if not raw_body_content:
+                print(f"[-] Empty body returned from proxy gateway for date: {target_date}")
+                return []
+                
+            # Convert raw text string payload back into an executable dictionary array
+            json_payload = json.loads(raw_body_content)
+            return json_payload.get("events", [])
+            
         elif response.status_code == 403:
-            print(f"[-] Proxy Gateway was blocked by Cloudflare (403) for date: {target_date}.")
+            print(f"[-] Proxy Gateway was rejected by anti-bot firewall (403) for date: {target_date}.")
             return []
         else:
             print(f"[-] Request failed via gateway. Status: {response.status_code}")
             return []
+            
     except Exception as e:
-        print(f"[-] Proxy routing layer failure: {e}")
+        print(f"[-] Proxy routing layer failure or JSON mismatch: {e}")
         return []
 
 def extract_clean_metadata(raw_events):
@@ -121,8 +133,7 @@ def pipeline_runner():
                 json.dump(clean_data, f, indent=2)
             print(f"[+] Saved {len(clean_data)} historical entries to {output_file}")
             
-        # Throttling helps optimize API credit allocation pacing
-        time.sleep(random.uniform(2.5, 4.5))
+        time.sleep(random.uniform(3.0, 6.0))
 
     # 2. UPCOMING MATCHES FOR PREDICTIONS (Today and Tomorrow)
     print("\n--- Starting Predictive Future Scrape Component ---")
@@ -137,7 +148,7 @@ def pipeline_runner():
                 json.dump(clean_data, f, indent=2)
             print(f"[+] Saved {len(clean_data)} prospective fixtures to {output_file}")
             
-        time.sleep(random.uniform(2.5, 4.5))
+        time.sleep(random.uniform(3.0, 6.0))
 
 if __name__ == "__main__":
     start_time = time.time()
