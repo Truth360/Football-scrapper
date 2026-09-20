@@ -24,7 +24,7 @@ the ScrapeOps proxy gateway with precise header forwarding.
 """
 SCRAPEOPS_API_KEY = "958b2c50-6f47-4529-97f6-e28fcc210663" 
 
-### FIX: Point directly to the internal JSON API endpoint instead of the web UI
+### Direct internal API route syntax
 
 target_url = f"https://api.sofascore.com/api/v1/sport/{sport}/scheduled-events/{target_date}"
 proxy_gateway_url = "https://proxy.scrapeops.io/v1/" 
@@ -51,10 +51,8 @@ headers = {
 
 print(f"[*] Tunneling request through ScrapeOps proxy gateway for date: {target_date}") 
 
-try: 
-
-### Use curl_cffi for native HTTP/2 + TLS Fingerprint mimicry
-
+try:
+# Use curl_cffi for native HTTP/2 + TLS Fingerprint mimicry
 response = requests.get(
 proxy_gateway_url,
 params=params,
@@ -63,14 +61,9 @@ impersonate="chrome120",
 timeout=30
 ) 
 
-if response.status_code == 200: 
-
-### ScrapeOps returns the actual target page content inside its response string
-
-    # If JSON optimization is on, we can safely parse the response text directly
+if response.status_code == 200:
     json_payload = response.json()
     return json_payload.get("events", [])
-    
 elif response.status_code in:
     print(f"[-] Proxy Gateway rejected by anti-bot layer ({response.status_code}) for date: {target_date}.")
     return []
