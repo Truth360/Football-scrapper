@@ -1,16 +1,25 @@
-name: Football Scraper Production V3 
+
+name: Football Scraper Production V3 
 
 on:
 schedule:
 - cron: '0 2 * * *'
-workflow_dispatch: 
+workflow_dispatch: 
+ Check failure on line 6 in .github/workflows/scraper.yml
+
+
+GitHub Actions
+/ .github/workflows/scraper.yml
+Invalid workflow file
+
+You have an error in your yaml syntax on line 6
 
 permissions:
-contents: write 
+contents: write 
 
 jobs:
 run-pipeline:
-runs-on: ubuntu-latest 
+runs-on: ubuntu-latest 
 
 steps:
 
@@ -39,7 +48,7 @@ git config --global user.email "github-actions[bot]@users.noreply.github.com"
 ### Ensure directories exist so git add doesn't fail on cold runs
 
 mkdir -p data/historical data/upcoming
-git add data/ 
+git add data/ 
 
 if git diff --staged --quiet; then
 echo "No new fixture differences found. Skipping tree push."
